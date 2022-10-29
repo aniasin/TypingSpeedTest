@@ -68,14 +68,27 @@ def key_press(event):
             pass
         if index + 2 == len(texts_up[focus_index].get("1.0", "end")):
             focus_index += 1
+            for text_box in texts_up:
+                text_box.place(y=text_box.winfo_y() - 80)
+            for text_box in texts_down:
+                text_box.place(y=text_box.winfo_y() - 80)
             texts_down[focus_index].focus()
 
 
 def do_backspace(event):
+    global focus_index
     shift_keys = {"Shift_L", "Shift_R"}
     if event.keysym not in shift_keys:
         try:
             index = int(texts_down[focus_index].index(tk.INSERT).split(".")[1])
+            if index == 0:
+                focus_index -= 1
+                for text_box in texts_up:
+                    text_box.place(y=text_box.winfo_y() + 80)
+                for text_box in texts_down:
+                    text_box.place(y=text_box.winfo_y() + 80)
+                index = int(texts_down[focus_index].index(tk.INSERT).split(".")[1]) - 1
+                texts_down[focus_index].focus()
             texts_up[focus_index].tag_remove("wrong", texts_up[focus_index].index(f"1.{index}"))
             texts_up[focus_index].tag_remove("correct", texts_up[focus_index].index(f"1.{index}"))
         except tk.TclError:
@@ -84,35 +97,36 @@ def do_backspace(event):
 
 win = tk.Tk()
 win.title("Typing Test")
-win.config(width=700, height=400, bg="white")
+win.config(width=900, height=200, bg="white")
 
 win.bind("<Key>", key_press)
 win.bind("<BackSpace>", do_backspace)
 
 label_title = tk.Label(text="Typing Speed Test", font=("Arial", 20, "bold"), bg="white", fg="black")
-label_title.place(relx=0.5, rely=0, anchor="n")
+label_title.place(x=130, y=20, anchor="n")
 
 label_result = tk.Label(text="words/minutes", font=("Arial", 18, "normal"), bg="white", fg="green")
-label_result.place(relx=0.5, rely=0.1, anchor="n")
+label_result.place(x=120, y=60, anchor="n")
 
 label_precision = tk.Label(text="Precision: ", font=("Arial", 18, "normal"), bg="white", fg="green")
-label_precision.place(relx=0.5, rely=0.2, anchor="n")
+label_precision.place(x=120, y=100, anchor="n")
 
-rely = 0.4
+pos_x = 280
+pos_y = 20
 texts_up = []
 texts_down = []
 for line in split_text:
     current_index = split_text.index(line)
-    texts_up.append(tk.Text(width=50, height=1, pady=2,  relief="flat", font=("Arial", 14, "normal")))
+    texts_up.append(tk.Text(width=50, height=1, pady=2,  relief="flat", fg="grey", font=("Arial", 14, "normal")))
     texts_up[current_index].insert(f"{current_index}.0", line)
     texts_up[current_index].config(state="disabled")
-    rely += 0.2
-    texts_up[current_index].place(relx=0.5, rely=rely, anchor="s")
+    texts_up[current_index].place(x=pos_x, y=pos_y)
     texts_up[current_index].tag_configure("correct", foreground="green")
     texts_up[current_index].tag_configure("wrong", foreground="red")
-
+    pos_y += 40
     texts_down.append(tk.Text(width=50, height=1, font=("Arial", 14, "normal")))
-    texts_down[current_index].place(relx=0.5, rely=rely, anchor="n")
+    texts_down[current_index].place(x=pos_x, y=pos_y)
+    pos_y += 40
 
 focus_index = 0
 texts_down[focus_index].focus()
