@@ -27,10 +27,13 @@ TEXT_ = "Je me suis rendu compte peu à peu de ce que fut jusqu'à présent tout
 
 
 TEXT = TEXT_.replace(" – ", " ")
+TEXT = TEXT.replace("«", '"')
+TEXT = TEXT.replace("»", '"')
 split_text = wrap(TEXT, 60)
 TIME_TEST = 300
 
 cursor_pos = 0
+line_pos = 0
 count = TIME_TEST
 timer = ""
 
@@ -41,74 +44,88 @@ def start(time_left):
     if count > 0:
         check_typing()
         count -= .5
-        timer = win.after(500, start, count)
+        timer = win.after(1000, start, count)
     else:
         win.after_cancel(timer)
-        game_end()
+        test_end()
 
 
 def check_typing():
     if count < TIME_TEST:
         current_time = TIME_TEST - count
         current_words_count = 0
-        for text in texts_down[:focus_index + 1]:
-            current_words_count += len(text.get("1.0", "end").split())
+        text_up = []
+        text_down = []
+        for text in texts_down[:line_pos + 1]:
+            if cursor_pos < len(text.get("1.0", "end")):
+                current_words_count += len(text.get("1.0", f"1.{cursor_pos + 1}").split())
+                text_down += (text.get("1.0", f"1.{cursor_pos + 1}").split())
+            else:
+                current_words_count += len(text.get("1.0", "end").split())
+                text_down += (text.get("1.0", "end").split())
         words_min = current_words_count / current_time
         words_min = "{:.2f}".format(words_min * 60)
         label_result.configure(text=f"{words_min} words/minutes")
+        for text in texts_up[:line_pos + 1]:
+            if cursor_pos < len(text.get("1.0", "end")):
+                text_up += (text.get("1.0", f"1.{cursor_pos + 1}").split())
+            else:
+                text_up += (text.get("1.0", "end").split())
+        wrong_words = len(set(text_up) - set(text_down))
+        print(set(text_up) - set(text_down))
+        if len(text_up) > 0:
+            precision = "{:.2f}".format(((len(text_up) - wrong_words) / len(text_up)) * 100)
+            label_precision.configure(text=f"Precision: {precision}%")
 
 
-def game_end():
-    pass
+def test_end():
+    print("Test ended!")
 
 
 def key_press(event):
-    global focus_index
+    global line_pos
     global cursor_pos
-    shift_keys = {"Shift_L", "Shift_R"}
+    shift_keys = {"Shift_L", "Shift_R", "^"}
     if event.keysym not in shift_keys:
-        index = int(texts_down[focus_index].index(tk.INSERT).split(".")[1]) - 1
-        print(index)
-        print(focus_index)
-        cursor_pos = index
+        cursor_pos = int(texts_down[line_pos].index(tk.INSERT).split(".")[1]) - 1
+        print(cursor_pos)
+        print(line_pos)
         try:
-            if event.char == texts_up[focus_index].get(texts_up[focus_index].index(f"1.{index}")):
-                texts_up[focus_index].tag_add("correct", texts_up[focus_index].index(f"1.{index}"))
+            if event.char == texts_up[line_pos].get(texts_up[line_pos].index(f"1.{cursor_pos}")):
+                texts_up[line_pos].tag_add("correct", texts_up[line_pos].index(f"1.{cursor_pos}"))
             else:
-                texts_up[focus_index].tag_add("wrong", texts_up[0].index(f"1.{index}"))
+                texts_up[line_pos].tag_add("wrong", texts_up[0].index(f"1.{cursor_pos}"))
         except tk.TclError:
             pass
-        if index + 2 == len(texts_up[focus_index].get("1.0", "end")):
-            focus_index += 1
+        if cursor_pos + 2 == len(texts_up[line_pos].get("1.0", "end")):
+            line_pos += 1
             for text_box in texts_up:
                 text_box.place(y=text_box.winfo_y() - 80)
             for text_box in texts_down:
                 text_box.place(y=text_box.winfo_y() - 80)
-            texts_down[focus_index].focus()
+            texts_down[line_pos].focus()
 
 
 def do_backspace(event):
-    global focus_index
+    global line_pos
     global cursor_pos
     shift_keys = {"Shift_L", "Shift_R"}
     if event.keysym not in shift_keys:
         try:
-            index = int(texts_down[focus_index].index(tk.INSERT).split(".")[1])
-            cursor_pos = index
-            if focus_index == 0:
+            cursor_pos = int(texts_down[line_pos].index(tk.INSERT).split(".")[1])
+            if cursor_pos == 0:
                 return
-            if index == 0:
-                focus_index -= 1
+            if cursor_pos == 0:
+                line_pos -= 1
                 for text_box in texts_up:
                     text_box.place(y=text_box.winfo_y() + 80)
                 for text_box in texts_down:
                     text_box.place(y=text_box.winfo_y() + 80)
-                index = int(texts_down[focus_index].index(tk.INSERT).split(".")[1]) - 1
-                cursor_pos = index
-                texts_down[focus_index].focus()
-                texts_down[focus_index].delete("end-2c")
-            texts_up[focus_index].tag_remove("wrong", texts_up[focus_index].index(f"1.{index}"))
-            texts_up[focus_index].tag_remove("correct", texts_up[focus_index].index(f"1.{index}"))
+                cursor_pos = int(texts_down[line_pos].index(tk.INSERT).split(".")[1]) - 1
+                texts_down[line_pos].focus()
+                texts_down[line_pos].delete("end-2c")
+            texts_up[line_pos].tag_remove("wrong", texts_up[line_pos].index(f"1.{cursor_pos}"))
+            texts_up[line_pos].tag_remove("correct", texts_up[line_pos].index(f"1.{cursor_pos}"))
         except tk.TclError:
             pass
 
@@ -147,8 +164,7 @@ for line in split_text:
     texts_down[current_index].place(x=pos_x, y=pos_y)
     pos_y += 40
 
-focus_index = 0
-texts_down[focus_index].focus()
+texts_down[line_pos].focus()
 
 start(TIME_TEST)
 win.mainloop()
