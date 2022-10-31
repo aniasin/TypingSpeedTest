@@ -1,7 +1,7 @@
 import tkinter as tk
 from textwrap import wrap
 
-TEXT_ = "Je me suis rendu compte peu à peu de ce que fut jusqu'à présent toute grande philosophie : la confession de son " \
+TEXT = "Je me suis rendu compte peu à peu de ce que fut jusqu'à présent toute grande philosophie : la confession de son " \
        "auteur, une sorte de mémoires involontaires et insensibles ; et je me suis aperçu aussi que les intentions " \
        "morales ou immorales formaient, dans toute philosophie, le véritable germe vital d'où chaque fois la plante " \
        "entière est éclose. On ferait bien en effet (et ce serait même raisonnable) de se demander, pour l'élucidation " \
@@ -26,7 +26,7 @@ TEXT_ = "Je me suis rendu compte peu à peu de ce que fut jusqu'à présent tout
        "c'est-à-dire dans quel rapport se trouvent les instincts les plus intimes de sa nature."
 
 
-TEXT = TEXT_.replace(" – ", " ")
+TEXT = TEXT.replace(" – ", " ")
 TEXT = TEXT.replace("«", '"')
 TEXT = TEXT.replace("»", '"')
 split_text = wrap(TEXT, 60)
@@ -88,8 +88,6 @@ def key_press(event):
     shift_keys = {"Shift_L", "Shift_R", "^"}
     if event.keysym not in shift_keys:
         cursor_pos = int(texts_down[line_pos].index(tk.INSERT).split(".")[1]) - 1
-        print(cursor_pos)
-        print(line_pos)
         try:
             if event.char == texts_up[line_pos].get(texts_up[line_pos].index(f"1.{cursor_pos}")):
                 texts_up[line_pos].tag_add("correct", texts_up[line_pos].index(f"1.{cursor_pos}"))
@@ -109,7 +107,7 @@ def key_press(event):
 def do_backspace(event):
     global line_pos
     global cursor_pos
-    shift_keys = {"Shift_L", "Shift_R"}
+    shift_keys = {"Shift_L", "Shift_R", "^"}
     if event.keysym not in shift_keys:
         try:
             cursor_pos = int(texts_down[line_pos].index(tk.INSERT).split(".")[1])
@@ -132,7 +130,7 @@ def do_backspace(event):
 
 win = tk.Tk()
 win.title("Typing Test")
-win.config(width=900, height=200, bg="white")
+win.config(width=900, height=400, bg="white")
 
 win.bind("<Key>", key_press)
 win.bind("<BackSpace>", do_backspace)
