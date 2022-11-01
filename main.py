@@ -30,8 +30,10 @@ TEXT = TEXT.replace(" – ", " ")
 TEXT = TEXT.replace("«", '"')
 TEXT = TEXT.replace("»", '"')
 split_text = wrap(TEXT, 60)
-TIME_TEST = 300
+TIME_TEST = 60
 
+texts_up = []
+texts_down = []
 cursor_pos = 0
 line_pos = 0
 count = TIME_TEST
@@ -56,30 +58,30 @@ def check_typing():
         current_words_count = 0
         text_up = []
         text_down = []
+        current_line = 0
         for text in texts_down[:line_pos + 1]:
-            if cursor_pos < len(text.get("1.0", "end")):
+            if cursor_pos < len(text.get("1.0", "end")) and current_line == line_pos + 1:
                 current_words_count += len(text.get("1.0", f"1.{cursor_pos + 1}").split())
                 text_down += (text.get("1.0", f"1.{cursor_pos + 1}").split())
             else:
                 current_words_count += len(text.get("1.0", "end").split())
                 text_down += (text.get("1.0", "end").split())
-        words_min = current_words_count / current_time
-        words_min = "{:.2f}".format(words_min * 60)
+            current_line += 1
+        words_sec = current_words_count / current_time
+        words_min = "{:.2f}".format(words_sec * 60)
         label_result.configure(text=f"{words_min} words/minutes")
+        current_line = 0
         for text in texts_up[:line_pos + 1]:
-            if cursor_pos < len(text.get("1.0", "end")):
+            if cursor_pos < len(text.get("1.0", "end")) and current_line == line_pos + 1:
                 text_up += (text.get("1.0", f"1.{cursor_pos + 1}").split())
             else:
                 text_up += (text.get("1.0", "end").split())
+            current_line += 1
         wrong_words = len(set(text_up) - set(text_down))
-        print(set(text_up) - set(text_down))
+        print(current_time)
         if len(text_up) > 0:
             precision = "{:.2f}".format(((len(text_up) - wrong_words) / len(text_up)) * 100)
             label_precision.configure(text=f"Precision: {precision}%")
-
-
-def test_end():
-    print("Test ended!")
 
 
 def key_press(event):
@@ -128,6 +130,33 @@ def do_backspace(event):
             pass
 
 
+def radio_button_used():
+    global TIME_TEST
+    if radio_state.get() == 0:
+        TIME_TEST = 60
+    elif radio_state.get() == 1:
+        TIME_TEST = 180
+    elif radio_state.get() == 2:
+        TIME_TEST = 300
+    else:
+        TIME_TEST = 60
+
+
+def start_test():
+    canvas.place_forget()
+    btn_start.place_forget()
+    radio_button.place_forget()
+    radio_button_2.place_forget()
+    radio_button_3.place_forget()
+    set_up_text()
+    start(TIME_TEST)
+
+
+def test_end():
+    for text in texts_down:
+        text.config(state="disabled")
+
+
 win = tk.Tk()
 win.title("Typing Test")
 win.config(width=900, height=400, bg="white")
@@ -144,25 +173,41 @@ label_result.place(x=120, y=60, anchor="n")
 label_precision = tk.Label(text="Precision: ", font=("Arial", 18, "normal"), bg="white", fg="green")
 label_precision.place(x=120, y=100, anchor="n")
 
-pos_x = 280
-pos_y = 20
-texts_up = []
-texts_down = []
-for line in split_text:
-    current_index = split_text.index(line)
-    line += " "
-    texts_up.append(tk.Text(width=50, height=1, pady=2,  relief="flat", fg="grey", font=("Arial", 14, "normal")))
-    texts_up[current_index].insert(f"{current_index}.0", line)
-    texts_up[current_index].config(state="disabled")
-    texts_up[current_index].place(x=pos_x, y=pos_y)
-    texts_up[current_index].tag_configure("correct", foreground="green")
-    texts_up[current_index].tag_configure("wrong", foreground="red")
-    pos_y += 40
-    texts_down.append(tk.Text(width=50, height=1, font=("Arial", 14, "normal")))
-    texts_down[current_index].place(x=pos_x, y=pos_y)
-    pos_y += 40
 
-texts_down[line_pos].focus()
+def set_up_text():
+    pos_x = 280
+    pos_y = 20
+    for line in split_text:
+        current_index = split_text.index(line)
+        line += " "
+        texts_up.append(tk.Text(width=50, height=1, pady=2,  relief="flat", fg="grey", font=("Arial", 14, "normal")))
+        texts_up[current_index].insert(f"{current_index}.0", line)
+        texts_up[current_index].config(state="disabled")
+        texts_up[current_index].place(x=pos_x, y=pos_y)
+        texts_up[current_index].tag_configure("correct", foreground="green")
+        texts_up[current_index].tag_configure("wrong", foreground="red")
+        pos_y += 40
+        texts_down.append(tk.Text(width=50, height=1, font=("Arial", 14, "normal")))
+        texts_down[current_index].place(x=pos_x, y=pos_y)
+        pos_y += 40
 
-start(TIME_TEST)
+    texts_down[line_pos].focus()
+
+
+canvas = tk.Canvas(width="900", height="400", bg="grey", highlightthickness=0)
+canvas.place(x=0, y=0)
+btn_start = tk.Button(text="  Start  ", command=start_test)
+btn_start.place(x=450, y=200)
+
+radio_state = tk.IntVar()
+radio_button = tk.Radiobutton(text="1 minute", value=0, variable=radio_state, command=radio_button_used)
+radio_button.config(padx=25, state="active")
+radio_button.place(x=400, y=250)
+radio_button_2 = tk.Radiobutton(text="3 minutes", value=1, variable=radio_state, command=radio_button_used)
+radio_button_2.config(padx=25)
+radio_button_2.place(x=400, y=290)
+radio_button_3 = tk.Radiobutton(text="5 minutes", value=2, variable=radio_state, command=radio_button_used)
+radio_button_3.config(padx=25)
+radio_button_3.place(x=400, y=330)
+
 win.mainloop()
